@@ -9,6 +9,7 @@ use Encore\Admin\Show;
 use Encore\Admin\Table;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class DatabaseTablesController extends AdminController
 {
@@ -68,22 +69,21 @@ class DatabaseTablesController extends AdminController
     protected function form()
     {
         $form = new Form(new Database_tables());
+        $userArray = Auth::guard('admin')->user()->toArray();
 
         $form->text('name', __('Name'));
         $form->text('alias_name', __('Alias name'));
+        $form->hidden('creator_id', __('Creator id'))->default($userArray['id']);
+        $form->hidden('modifier_id', __('Modifier id'))->default($userArray['id']);
 
-        $form->saved(function (Form $form) {
-            dump($form->username);exit;
-//            $userArray = Auth::guard('admin')->user()->toArray();
-//            if(Route::currentRouteName () != 'admin.databasetables.edit'){
-//                $form->creator_id = $userArray['id'];
-//            $form->text('creator_id', __('creator_id'))->value($userArray['id']);
-//            }
-
-//            $form->modifier_id = $userArray['id'];
-//            $form->text('modifier_id', __('modifier_id'))->value($userArray['id']);
-        });
-
+//        if($form->isCreating()){
+//
+////            Schema::create($form->name, function($table){
+////                $table->increments('id');
+////            });
+//        }else{
+//
+//        }
         return $form;
     }
 }

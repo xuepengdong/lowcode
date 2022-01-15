@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Database_tables extends Model
 {
     use HasFactory;
-
+    public $timestamps = true;
     protected  $table = 'database_tables';
 
     public function creator()
