@@ -20,4 +20,11 @@ class Database_tables extends Model
     {
         return $this->belongsTo(Admin_users::class, 'modifier_id');
     }
+
+    public function setCreated_atAttribute($value){
+        if($this->created_at){
+            return;
+        }
+        $this->attributes['created_at'] = $value;
+    }
 }

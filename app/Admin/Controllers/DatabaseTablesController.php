@@ -73,8 +73,8 @@ class DatabaseTablesController extends AdminController
 
         $form->text('name', __('Name'));
         $form->text('alias_name', __('Alias name'));
-        $form->hidden('creator_id', __('Creator id'))->default($userArray['id']);
-        $form->hidden('modifier_id', __('Modifier id'))->default($userArray['id']);
+        $form->text('creator_id', __('Creator id'))->value($userArray['id']);
+        $form->text('modifier_id', __('Modifier id'))->default($userArray['id'])->value($userArray['id']);
 
 //        if($form->isCreating()){
 //
