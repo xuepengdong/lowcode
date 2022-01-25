@@ -9,9 +9,11 @@ use Encore\Admin\Show;
 use Encore\Admin\Table;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Http\Request;
 
 class DatabaseTablesController extends AdminController
 {
+
     /**
      * Title for current resource.
      *
@@ -60,6 +62,7 @@ class DatabaseTablesController extends AdminController
         return $show;
     }
 
+
     /**
      * Make a form builder.
      *
@@ -91,9 +94,9 @@ class DatabaseTablesController extends AdminController
                 });
             }
 
+
             if($form->isEditing()){
-                //保存后回调，更新数据库
-                $datatables->where('id', $form->getResourceId())
+                $status_updated = $datatables->where('id', $form->getResourceId())
                     ->update(
                         [
                             'modifier_id' => $userArray['id'],
@@ -101,8 +104,27 @@ class DatabaseTablesController extends AdminController
                             'alias_name' => $form->alias_name,
                         ]
                     );
+
+                //如果表存在 并且数据表更新成功，则更改数据表名；目前获取不到旧的值，后期再做；先注释
+                if(Schema::hasTable($form->name) && $status_updated){
+                    $request = request();
+                    $request->flash();
+                    dd($request->session());
+                    Schema::rename($request->old('name'), $form->name);
+                }
             }
         });
         return $form;
     }
+
+    /**
+     * 留学声列表
+     * @author dongxuepeng
+     * @desc 删除操作：数据表删除、数据表相关的外键数据全部清空；目前不清楚如何拦截删除操作，暂时不做；
+     * @date 2022/01/25
+     * @return array
+     */
+//    protected function delete(){
+//
+//    }
 }
