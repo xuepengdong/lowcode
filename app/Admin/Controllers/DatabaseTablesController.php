@@ -106,12 +106,12 @@ class DatabaseTablesController extends AdminController
                     );
 
                 //如果表存在 并且数据表更新成功，则更改数据表名；目前获取不到旧的值，后期再做；先注释
-                if(Schema::hasTable($form->name) && $status_updated){
-                    $request = request();
-                    $request->flash();
-                    dd($request->session());
-                    Schema::rename($request->old('name'), $form->name);
-                }
+//                if(Schema::hasTable($form->name) && $status_updated){
+//                    $request = request();
+//                    $request->flash();
+//                    dd($request->session());
+//                    Schema::rename($request->old('name'), $form->name);
+//                }
             }
         });
         return $form;
