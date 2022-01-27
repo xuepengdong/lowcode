@@ -13,11 +13,11 @@ class Admin_users extends Model
 
     public function database_tables_creator()
     {
-        return $this->hasMany(Database_tables::class, 'creator_id');
+        return $this->hasMany(Database_tables::class, 'id','creator_id');
     }
 
     public function database_tables_modifier()
     {
-        return $this->hasMany(Database_tables::class, 'modifier_id');
+        return $this->hasMany(Database_tables::class, 'id','modifier_id');
     }
 }

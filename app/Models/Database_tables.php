@@ -8,17 +8,18 @@ use Illuminate\Database\Eloquent\Model;
 class Database_tables extends Model
 {
     use HasFactory;
-    public $timestamps = true;
+    public $timestamps = false;
     protected  $table = 'database_tables';
+
 
     public function creator()
     {
-        return $this->belongsTo(Admin_users::class, 'creator_id');
+        return $this->belongsTo(Admin_users::class, 'creator_id', 'id');
     }
 
     public function modifier()
     {
-        return $this->belongsTo(Admin_users::class, 'modifier_id');
+        return $this->belongsTo(Admin_users::class, 'modifier_id', 'id');
     }
 
     public function setCreated_atAttribute($value){
