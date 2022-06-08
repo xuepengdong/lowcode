@@ -10,6 +10,7 @@ use Encore\Admin\Table;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\DB;
 
 class DatabaseTablesController extends AdminController
 {
@@ -22,7 +23,7 @@ class DatabaseTablesController extends AdminController
     protected $title = 'Database_tables';
 
     /**
-     * Make a table builder.
+     * @desc 列表展示
      *
      * @return Table
      */
@@ -30,19 +31,38 @@ class DatabaseTablesController extends AdminController
     {
         $table = new Table(new Database_tables());
 
+        $table->actions(function ($actions) {
+            $actions->disableDelete();
+            $actions->disableView();
+        });
+
+        $table->filter(function($filter){
+            $filter->column(1/2, function ($filter) {
+                $filter->like('name', '表名');
+                $filter->like('alias_name', '中文名字');
+            });
+
+            $filter->column(1/2, function ($filter) {
+                $filter->between('created_at', '创建时间')->datetime();
+                $filter->between('updated_at', '修改时间')->datetime();
+            });
+        });
+
+        $table->disableExport();
+        $table->disableRowSelector();
         $table->column('id', __('Id'));
-        $table->column('name', __('Name'));
-        $table->column('alias_name', __('Alias name'));
-        $table->column('created_at', __('Created at'));
-        $table->column('updated_at', __('Updated at'));
-        $table->column('creator.username', __('Creator Username'));
-        $table->column('modifier.username', __('Modifier Username'));
+        $table->column('name', __('表名'));
+        $table->column('alias_name', __('表别名'));
+        $table->column('created_at', __('创建时间'));
+        $table->column('updated_at', __('更新时间'));
+        $table->column('creator.username', __('创建者'));
+        $table->column('modifier.username', __('修改者'));
 
         return $table;
     }
 
     /**
-     * Make a show builder.
+     * @desc 详情页
      *
      * @param mixed $id
      * @return Show
@@ -52,12 +72,12 @@ class DatabaseTablesController extends AdminController
         $show = new Show(Database_tables::findOrFail($id));
 
         $show->field('id', __('Id'));
-        $show->field('name', __('Name'));
-        $show->field('alias_name', __('Alias name'));
-        $show->field('created_at', __('Created at'));
-        $show->field('updated_at', __('Updated at'));
-        $show->field('creator.username', __('Creator Username'));
-        $show->field('modifier.username', __('Modifier Username'));
+        $show->field('name', __('表名'));
+        $show->field('alias_name', __('表别名'));
+        $show->field('created_at', __('创建时间'));
+        $show->field('updated_at', __('更新时间'));
+        $show->field('creator.username', __('创建者'));
+        $show->field('modifier.username', __('修改者'));
 
         return $show;
     }
@@ -71,10 +91,26 @@ class DatabaseTablesController extends AdminController
     protected function form()
     {
         $form = new Form(new Database_tables());
-        $form->text('name', __('Name'));
-        $form->text('alias_name', __('Alias name'));
+
+        $form->tools(function (Form\Tools $tools) {
+            // 去掉`删除`按钮
+            $tools->disableDelete();
+            // 去掉`查看`按钮
+            $tools->disableView();
+        });
+
+        $form->text('name', __('表名（英文）'))
+            ->creationRules(['required', "unique:database_tables"])
+            ->updateRules(['required', "unique:database_tables"]);
+
+        $form->text('alias_name', __('中文'))
+            ->creationRules(['required', "unique:database_tables"])
+            ->updateRules(['required', "unique:database_tables"]);
+
         $old_array = Database_tables::where('id', '=', $form->getResourceId())->get();
-        Redis::hset('old_databases', $form->getResourceId(),json_encode($old_array));
+        $userArray = Auth::guard('admin')->user()->toArray();
+
+        Redis::hset('old_databases', $form->getResourceId().'_'.$userArray['id'], json_encode($old_array));
 
         $form->saved(function (Form $form) {
             $datatables = new Database_tables();
@@ -93,8 +129,23 @@ class DatabaseTablesController extends AdminController
                     $table->integer('creator_id');
                     $table->integer('modifier_id')->nullable();
                 });
-            }
 
+                //生成field表中的字段
+                $database_tables = DB::table('database_tables')->where('name', $form->name)->first();
+
+                $data = [
+                    ["modelid" => $database_tables->id, "name" => "id",  "alias_name" => "ID", 'is_system'=>'是'],
+                    ["modelid" => $database_tables->id, "name" => "created_at", "alias_name" => "创建时间", 'is_system'=>'是'],
+                    ["modelid" => $database_tables->id, "name" => "updated_at", "alias_name" => "修改时间", 'is_system'=>'是'],
+                    ["modelid" => $database_tables->id, "name" => "deleted_at", "alias_name" => "删除时间", 'is_system'=>'是'],
+                    ["modelid" => $database_tables->id, "name" => "creator_id", "alias_name" => "创建者ID", 'is_system'=>'是'],
+                    ["modelid" => $database_tables->id, "name" => "modifier_id", "alias_name" => "修改者ID", 'is_system'=>'是'],
+                    ["modelid" => $database_tables->id, "name" => "is_system", "alias_name" => "是否为系统字段", 'is_system'=>'是'],
+                ];
+
+                DB::table('field')->insert($data);
+
+            }
 
             if($form->isEditing()){
                 $status_updated = Database_tables::where('id', '=', $form->getResourceId())->update(
@@ -104,10 +155,9 @@ class DatabaseTablesController extends AdminController
                         'alias_name' => $form->alias_name,
                     ]
                 );
-                $old_databases = json_decode(Redis::hget('old_databases', $form->getResourceId()), true);
-
+                $old_databases = json_decode(Redis::hget('old_databases', $form->getResourceId().'_'.$userArray['id']), true);
                 if(Schema::hasTable($old_databases[0]['name']) && $status_updated == 0){
-                    Schema::rename($old_databases['0']['name'], $form->name);
+                    Schema::rename($old_databases[0]['name'], $form->name);
                 }
             }
         });
@@ -121,7 +171,7 @@ class DatabaseTablesController extends AdminController
      * @date 2022/01/25
      * @return array
      */
-//    protected function delete(){
-//
-//    }
+    protected function delete(){
+
+    }
 }
