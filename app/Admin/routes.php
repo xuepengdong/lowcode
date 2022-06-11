@@ -13,5 +13,8 @@ Route::group([
 
     $router->get('/', 'HomeController@index')->name('home');
     $router->resource('databasetables', DatabaseTablesController::class);
+    $router->resource('fields', FieldController::class);
+
+    $router->get('/fieldmanage/{id}', [\App\Admin\Controllers\FieldmanageController::class, 'fieldmanage']);
 
 });

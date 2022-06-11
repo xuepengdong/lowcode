@@ -3,6 +3,7 @@
 namespace App\Admin\Controllers;
 
 use App\Models\Database_tables;
+use App\Models\field_type;
 use Encore\Admin\Form;
 use Encore\Admin\Http\Controllers\AdminController;
 use Encore\Admin\Show;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\DB;
+use App\Admin\Actions\Post\Filemanage;
 
 class DatabaseTablesController extends AdminController
 {
@@ -34,7 +36,9 @@ class DatabaseTablesController extends AdminController
         $table->actions(function ($actions) {
             $actions->disableDelete();
             $actions->disableView();
+            $actions->add(new Filemanage);
         });
+
 
         $table->filter(function($filter){
             $filter->column(1/2, function ($filter) {
@@ -58,6 +62,7 @@ class DatabaseTablesController extends AdminController
         $table->column('creator.username', __('创建者'));
         $table->column('modifier.username', __('修改者'));
 
+        $table->paginate(2);
         return $table;
     }
 
@@ -99,16 +104,32 @@ class DatabaseTablesController extends AdminController
             $tools->disableView();
         });
 
-        $form->text('name', __('表名（英文）'))
+        $form->text('name', __('表名_英文'))
             ->creationRules(['required', "unique:database_tables"])
-            ->updateRules(['required', "unique:database_tables"]);
+            ->updateRules()->disable();
 
-        $form->text('alias_name', __('中文'))
+        $form->text('alias_name', __('表名_中文'))
             ->creationRules(['required', "unique:database_tables"])
-            ->updateRules(['required', "unique:database_tables"]);
+            ->updateRules()->disable();
 
         $old_array = Database_tables::where('id', '=', $form->getResourceId())->get();
         $userArray = Auth::guard('admin')->user()->toArray();
+
+
+
+        $form->hasMany('fields','字段管理', function (Form\NestedForm $form) {
+            $field_type_array = field_type::where()->get();
+
+            $form->text('name', __('字段_英文'))->rules('required')->help('必填');
+            $form->text('alias_name', __('字段_中文'));
+            $form->select('field_type_id', __('字段_类型'))->options($field_type_array);
+
+
+            $options = ['是' => '是', '否'=> '否'];
+            $form->radio('is_system')->options($options)->checked(['否'])->disable();
+
+
+        })->mode('table');
 
         Redis::hset('old_databases', $form->getResourceId().'_'.$userArray['id'], json_encode($old_array));
 
@@ -140,7 +161,6 @@ class DatabaseTablesController extends AdminController
                     ["modelid" => $database_tables->id, "name" => "deleted_at", "alias_name" => "删除时间", 'is_system'=>'是'],
                     ["modelid" => $database_tables->id, "name" => "creator_id", "alias_name" => "创建者ID", 'is_system'=>'是'],
                     ["modelid" => $database_tables->id, "name" => "modifier_id", "alias_name" => "修改者ID", 'is_system'=>'是'],
-                    ["modelid" => $database_tables->id, "name" => "is_system", "alias_name" => "是否为系统字段", 'is_system'=>'是'],
                 ];
 
                 DB::table('field')->insert($data);
